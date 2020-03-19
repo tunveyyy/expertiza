@@ -1,3 +1,5 @@
+require "uri"
+require "net/http"
 module ReviewMappingHelper
   def create_report_table_header(headers = {})
     render partial: 'report_table_header', locals: {headers: headers}
@@ -21,9 +23,8 @@ module ReviewMappingHelper
     [response_maps, rspan]
   end
 
-  #
   # gets the team name's color according to review and assignment submission status
-  #
+
   def get_team_colour(response_map)
     assignment_created = @assignment.created_at
     assignment_due_dates = DueDate.where(parent_id: response_map.reviewed_object_id)
@@ -271,7 +272,7 @@ module ReviewMappingHelper
   end
   score = num_suggestions_for_responses_by_a_reviewer(all_comments)
   return score
-	
+
   end
 
   #This function returns the concatenation of comments provided by the reviewer for one team.
@@ -286,51 +287,50 @@ module ReviewMappingHelper
       all_comments_per_review.push(comment) unless comment.empty?
     end
 	return all_comments_per_review
-	
+
   end
-=begin
-  #This is the function, which should be making a call to the API and returns a response if it is valid. When the API starts working, one could use this function.
-  def retrieve_review_suggestion_metrics(comments)
-    uri = URI.parse('https://peer-review-metrics-nlp.herokuapp.com/metrics/all')
-    http = Net::HTTP.new(uri.hostname, uri.port)
-    req = Net::HTTP::Post.new(uri, initheader = {'Content-Type' =>'application/json'})
-    req.body = {"reviews"=>comments,
-                      "metrics"=>["suggestion"]}.to_json
-    http.use_ssl = true
+
+#gets response to detect elements like suggestions, volume, etc from reviewer's comments
+
+  def analyse_reviews(comments)
+    url = URI("http://05612b1b.ngrok.io/analyse")
+    http = Net::HTTP.new(url.host, url.port)
+
+    request = Net::HTTP::Post.new(url)
+    request["Content-Type"] = "application/json"
+
+    request.body = {"comments"=>comments}.to_json
+    #http.use_ssl = true
     comments = [""] if comments.empty?
     begin
-      res = http.request(req)
-      if (res.code == "200" && res.content_type == "application/json")
-        return JSON.parse(res.body) 
-      else 
-        return nil 
+      response = http.request(req)
+      if (response.code == "200" && response.content_type == "application/json")
+        return JSON.parse(response.body)
+      else
+        return nil
       end
     rescue StandardError
       return nil
     end
   end
-=end
+
 
   #This function makes a call to the function which makes a call to the API, with all the comments provided by a student for one round of review.
   # It returns the number of suggestions provided by a reviewer.
   def num_suggestions_for_responses_by_a_reviewer(comments)
 	#send user review to API for analysis
-  #api_response = retrieve_review_suggestion_metrics(comments) #uncomment this call when the API starts working
+  api_response = analyse_reviews(comments) #uncomment this call when the API starts working
 	#compute average for all response fields in ONE response
     suggestion_score = 0
     #uncomment the code below when the API starts working
-    # if api_response
-    #   number_of_responses = api_response["results"].size
-    #   0.upto(number_of_responses- 1) do |i|
-    #     suggestion_chance += api_response["results"][i]["metrics"]["suggestion"]["suggestions_chances"]
-    #   end
-    # end
+    if api_response
+       number_of_responses = api_response["results"].size
+       0.upto(number_of_responses- 1) do |i|
+         suggestion_chance += api_response["results"][i]["metrics"]["suggestion"]["suggestions_chances"]
+       end
+     end
 
-    #response received from the call to the API is simulated using a random number generator
     if !comments.empty?
-      0.upto(comments.length-1) do |i|
-        suggestion_score+=rand(10).to_i
-      end
       return (suggestion_score/comments.length).ceil()
     else
       return suggestion_score
@@ -457,7 +457,7 @@ module ReviewMappingHelper
     end
     [labels, reviewer_s_data, all_reviewers_s_data]
   end
-  
+
   def list_review_submissions(participant_id, reviewee_team_id, response_map_id)
     participant = Participant.find(participant_id)
     team = AssignmentTeam.find(reviewee_team_id)

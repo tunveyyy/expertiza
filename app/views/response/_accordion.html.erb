@@ -1,13 +1,16 @@
 <% if is_first %>
-    <div id="accordion">
-      <h3><a href="#"><b><%= title %></b></a></h3>
-
-      <div>
-        <p>
-<% else %>
-    </p>
-    </div>
+  <div id="accordion">
     <h3><a href="#"><b><%= title %></b></a></h3>
+
     <div>
       <p>
+<% else %>
+  </p>
+  </div>
+  <h3><a href="#"><b><%= title %></b></a></h3>
+  <>
+    <p>
+    </p>
+
 <% end %>
+ </div>
