@@ -292,7 +292,7 @@ module ReviewMappingHelper
 
 #gets response to detect elements like suggestions, volume, etc from reviewer's comments
 
-  def analyse_reviews(comments)
+  def retrieve_review_suggestion_metrics(comments)
     url = URI("http://05612b1b.ngrok.io/analyse")
     http = Net::HTTP.new(url.host, url.port)
 
